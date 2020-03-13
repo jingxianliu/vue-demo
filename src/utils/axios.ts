@@ -4,25 +4,26 @@ import store from '../store'
 import {Message} from 'element-ui'
 axios.defaults.timeout = 60 * 1000    //超时时间
 axios.defaults.headers.post['Content-Type'] = 'application/json'        //配置请求头
-//axios.defaults.baseURL = process.env.API_ROOT   //配置接口地址
-axios.defaults.baseURL = '/api'   //配置接口地址
+//axios.defaults.baseURL = process.env.API_IOT   //配置接口地址
+//axios.defaults.baseURL = '/api'   //配置接口地址
 let cancelToken = axios.CancelToken
 let retryCount = 5
+
+  let config = {   headers: {'Content-Type': 'multipart/form-data'} }
 //添加请求拦截器
 axios.interceptors.request.use(config=>{
-    
-    if (store.state.TOKEN) {
-        config.headers.token = store.state.TOKEN
-      } else {
-        Message({
-            type: 'warning',
-            message: '登陆信息已过期，请重新登录',
-            duration: 1500,
-            offset: 80
-          })
-        //没有token信息，重新登陆
-        router.push({ path: '/login'})
-      }
+    // if (store.state.TOKEN) {
+    //     config.headers.token = store.state.TOKEN
+    //   } else {
+    //     Message({
+    //         type: 'warning',
+    //         message: '登陆信息已过期，请重新登录',
+    //         duration: 1500,
+    //         offset: 80
+    //       })
+    //     //没有token信息，重新登陆
+    //     router.push({ path: '/login'})
+    //   }
 
      store.commit('deletePending',config)
      config.cancelToken = new cancelToken((c)=>{
@@ -35,28 +36,27 @@ axios.interceptors.request.use(config=>{
  
 //添加响应拦截器
 axios.interceptors.response.use((response) =>{
-    console.log(response.config.url)
    //在一个ajax响应后再执行一下取消操作，把已经完成的请求从pending中移除
     store.commit('deletePending',response.config)
     //没有token信息
-    if (response.data.errorCode === -2) {
-        Message({
-            type: 'warning',
-            message: '登陆信息已过期，请重新登录',
-            duration: 1500,
-            offset: 80
-          })
-        store.commit('setTOKEN','')
-        router.push({path: '/login' })   
-    } else if (response.data.errorCode === -1) {
-        Message({
-            type: 'warning',
-            message: '用户无操作权限',
-            duration: 1500,
-            offset: 80
-        })
+    // if (response.data.errorCode === -2) {
+    //     Message({
+    //         type: 'warning',
+    //         message: '登陆信息已过期，请重新登录',
+    //         duration: 1500,
+    //         offset: 80
+    //       })
+    //     store.commit('setTOKEN','')
+    //     router.push({path: '/login' })   
+    // } else if (response.data.errorCode === -1) {
+    //     Message({
+    //         type: 'warning',
+    //         message: '用户无操作权限',
+    //         duration: 1500,
+    //         offset: 80
+    //     })
         
-    }
+    // }
     return response;
    },(error) =>{
     var originalRequest = error.config;
@@ -78,9 +78,9 @@ axios.interceptors.response.use((response) =>{
        }
       
     }else{
-        return Promise.reject(error) 
-
-        //return { data: { } }; //返回一个空对象，主要是防止控制台报错
+       // return Promise.reject(error) 
+     
+        return { data: error.response,message:error.response.data.message}; //返回报错信息
     }
      
 
@@ -89,7 +89,6 @@ axios.interceptors.response.use((response) =>{
 
 //返回一个Promise(发送post请求)
 export function post(url, params ={}) {
-
     return new Promise((resolve, reject) => {
         axios.post(url, params)
             .then(response => {
@@ -103,9 +102,10 @@ export function post(url, params ={}) {
     })
 }
 //返回一个Promise(发送get请求)
-export function get(url, param = {}) {
+export function get(url, params = {}) {
+
     return new Promise((resolve, reject) => {
-        axios.get(url, {params: param})
+        axios.get(url, {params: params})
             .then(response => {
                 resolve(response)
             }, err => {
@@ -117,10 +117,10 @@ export function get(url, param = {}) {
     })
 }
 
-//返回一个Promise(发送get请求)
-export function put(url, param = {}) {
+//返回一个Promise(发送put请求)
+export function put(url, params = {}) {
     return new Promise((resolve, reject) => {
-        axios.put(url, {params: param})
+        axios.put(url,  params)
             .then(response => {
                 resolve(response)
             }, err => {
@@ -133,9 +133,9 @@ export function put(url, param = {}) {
 }
 
 //返回一个Promise(发送delete请求)
-export function  deletes (url, param ={}) {
+export function  deletes (url, params ={}) {
     return new Promise((resolve, reject) => {
-        axios.delete(url, {params: param})
+        axios.delete(url, {data:params})
             .then(response => {
                 resolve(response)
             }, err => {
@@ -148,8 +148,10 @@ export function  deletes (url, param ={}) {
 }
 
 export function  upload (url, param ={}) {
+   
+   
     return new Promise((resolve, reject) => {
-        axios.post(url, {params: param})
+        axios.post(url,  param, config)
             .then(response => {
                 resolve(response)
             }, err => {
